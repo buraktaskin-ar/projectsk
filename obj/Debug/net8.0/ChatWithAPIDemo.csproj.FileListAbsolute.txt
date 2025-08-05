@@ -1,0 +1,8 @@
+D:\VisualStudioCode Projects repos\ChatWithAPIDemo\obj\Debug\net8.0\ChatWithAPIDemo.csproj.AssemblyReference.cache
+D:\VisualStudioCode Projects repos\ChatWithAPIDemo\obj\Debug\net8.0\rpswa.dswa.cache.json
+D:\VisualStudioCode Projects repos\ChatWithAPIDemo\obj\Debug\net8.0\ChatWithAPIDemo.GeneratedMSBuildEditorConfig.editorconfig
+D:\VisualStudioCode Projects repos\ChatWithAPIDemo\obj\Debug\net8.0\ChatWithAPIDemo.AssemblyInfoInputs.cache
+D:\VisualStudioCode Projects repos\ChatWithAPIDemo\obj\Debug\net8.0\ChatWithAPIDemo.AssemblyInfo.cs
+D:\VisualStudioCode Projects repos\ChatWithAPIDemo\obj\Debug\net8.0\ChatWithAPIDemo.csproj.CoreCompileInputs.cache
+D:\VisualStudioCode Projects repos\ChatWithAPIDemo\obj\Debug\net8.0\ChatWithAPIDemo.MvcApplicationPartsAssemblyInfo.cs
+D:\VisualStudioCode Projects repos\ChatWithAPIDemo\obj\Debug\net8.0\ChatWithAPIDemo.MvcApplicationPartsAssemblyInfo.cache
