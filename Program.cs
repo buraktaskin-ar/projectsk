@@ -10,16 +10,20 @@ using Microsoft.SemanticKernel.Connectors.OpenAI;
 
 WebApplicationBuilder webAppBuilder = WebApplication.CreateBuilder(args);
 
-                   
+
+string azureApiKey = Environment.GetEnvironmentVariable("AZURE_OPENAI_API_KEY")
+    ?? throw new InvalidOperationException("AZURE_OPENAI_API_KEY environment variable is not set");
+
+
 IKernelBuilder azureBuilder = Kernel.CreateBuilder()
     .AddAzureOpenAIChatCompletion(
         deploymentName: "gpt-4o-mini",
         endpoint: "https://ai-newchapter2-resource.cognitiveservices.azure.com/",
-        apiKey: "G68kZEXqNXh23qb4aMUJD23DsfTKlkq8V649zMUpD5HiUDzhJFXRJQQJ99BGACYeBjFXJ3w3AAAAACOGhqWj"
+        apiKey: azureApiKey
     );
 
 
-                        // Dummy Data
+// Dummy Data
 
 var hotels = new List<Hotel>
 {

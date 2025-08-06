@@ -2,6 +2,7 @@
 using System.ComponentModel;
 using System.Text.Json;
 using ChatWithAPIDemo.Services;
+
 namespace ChatWithAPIDemo.Plugins
 {
     public class ReviewPlugin
@@ -19,16 +20,13 @@ namespace ChatWithAPIDemo.Plugins
             => JsonSerializer.Serialize(_reviewService.GetReviewsByHotelId(hotelId), J);
 
         [KernelFunction, Description("Get reviews written by a person")]
-        public string GetReviewsByPersonId([Description("Person id ")] string personId)
-            => Guid.TryParse(personId, out var id)
-                ? JsonSerializer.Serialize(_reviewService.GetReviewsByPersonId(id), J)
-                : JsonSerializer.Serialize(new { error = "Invalid GUID" }, J);
+        public string GetReviewsByPersonId([Description("Person id")] int personId)
+            => JsonSerializer.Serialize(_reviewService.GetReviewsByPersonId(personId), J);
 
         [KernelFunction, Description("Get a single review by id")]
         public string GetReviewById([Description("Review id (int)")] int reviewId)
             => JsonSerializer.Serialize(_reviewService.GetReviewById(reviewId), J);
 
-      
         [KernelFunction, Description("Get average rating for a hotel")]
         public string GetAverageRatingForHotel([Description("Hotel id")] int hotelId)
             => JsonSerializer.Serialize(new { hotelId, average = _reviewService.GetAverageRatingForHotel(hotelId) }, J);
