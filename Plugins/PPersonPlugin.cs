@@ -20,26 +20,32 @@ namespace ChatWithAPIDemo.Plugins
         public string FindByPhone([Description("Phone number")] string phone)
             => JsonSerializer.Serialize(_personService.FindPersonByPhone(phone), J);
 
-        [KernelFunction, Description("Find a person by id")]
-        public string FindById([Description("Person id")] int personId)
-            => JsonSerializer.Serialize(_personService.FindPersonById(personId), J);
+        [KernelFunction, Description("Find a person by id (GUID)")]
+        public string FindById([Description("Person id (GUID)")] string personId)
+        {
+            if (Guid.TryParse(personId, out var id))
+                return JsonSerializer.Serialize(_personService.FindPersonById(id), J);
+            return JsonSerializer.Serialize(new { error = "Invalid GUID format" }, J);
+        }
 
-        [KernelFunction, Description("Create a new person")]
+        [KernelFunction, Description("Create a new person (ID will be auto-generated)")]
         public string CreatePerson(
-             [Description("id")] int id,
             [Description("First name")] string firstName,
             [Description("Last name")] string lastName,
             [Description("Email")] string email,
             [Description("Phone (optional)")] string? phone = null)
-            => JsonSerializer.Serialize(_personService.CreatePerson(id,firstName, lastName, email, phone), J);
+            => JsonSerializer.Serialize(_personService.CreatePerson(firstName, lastName, email, phone), J);
 
         [KernelFunction, Description("Add loyalty points to a person")]
         public string AddLoyaltyPoints(
-              [Description("Person id")] int personId,
-              [Description("Points to add (int)")] int points)
+            [Description("Person id (GUID)")] string personId,
+            [Description("Points to add (int)")] int points)
         {
-            _personService.AddLoyaltyPoints(personId, points);
-            var updated = _personService.FindPersonById(personId);
+            if (!Guid.TryParse(personId, out var id))
+                return JsonSerializer.Serialize(new { error = "Invalid GUID format" }, J);
+
+            _personService.AddLoyaltyPoints(id, points);
+            var updated = _personService.FindPersonById(id);
             return updated is null
                 ? JsonSerializer.Serialize(new { error = "Person not found" }, J)
                 : JsonSerializer.Serialize(updated, J);

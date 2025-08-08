@@ -56,3 +56,4 @@ D:\VisualStudioCode Projects repos\ChatWithAPIDemo\obj\Debug\net8.0\refint\ChatW
 D:\VisualStudioCode Projects repos\ChatWithAPIDemo\obj\Debug\net8.0\ChatWithAPIDemo.pdb
 D:\VisualStudioCode Projects repos\ChatWithAPIDemo\obj\Debug\net8.0\ChatWithAPIDemo.genruntimeconfig.cache
 D:\VisualStudioCode Projects repos\ChatWithAPIDemo\obj\Debug\net8.0\ref\ChatWithAPIDemo.dll
+D:\VisualStudioCode Projects repos\ChatWithAPIDemo\bin\Debug\net8.0\Data\knowlede.json

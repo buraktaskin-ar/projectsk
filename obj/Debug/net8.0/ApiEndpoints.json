@@ -1,6 +1,16 @@
 [
   {
     "ContainingType": "ChatWithAPIDemo.Controllers.ChatController",
+    "Method": "GetAIStatus",
+    "RelativePath": "api/ai-status",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "ChatWithAPIDemo.Controllers.ChatController",
     "Method": "Chat",
     "RelativePath": "api/chat/{sessionId}",
     "HttpMethod": "POST",
@@ -32,9 +42,41 @@
   },
   {
     "ContainingType": "ChatWithAPIDemo.Controllers.ChatController",
+    "Method": "SearchHotels",
+    "RelativePath": "api/search/hotels",
+    "HttpMethod": "POST",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "request",
+        "Type": "ChatWithAPIDemo.Controllers.HotelSearchRequest",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "ChatWithAPIDemo.Controllers.ChatController",
     "Method": "GetSession",
     "RelativePath": "api/session/{sessionId}",
     "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "sessionId",
+        "Type": "System.String",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "ChatWithAPIDemo.Controllers.ChatController",
+    "Method": "DeleteSession",
+    "RelativePath": "api/session/{sessionId}",
+    "HttpMethod": "DELETE",
     "IsController": true,
     "Order": 0,
     "Parameters": [

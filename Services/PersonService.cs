@@ -1,6 +1,6 @@
 ﻿using ChatWithAPIDemo.Models;
-namespace ChatWithAPIDemo.Services;
 
+namespace ChatWithAPIDemo.Services;
 
 public class PersonService
 {
@@ -21,11 +21,11 @@ public class PersonService
         return _persons.FirstOrDefault(p => p.Phone == phone);
     }
 
-    public Person CreatePerson(int id, string firstName, string lastName, string email, string? phone = null)
+    public Person CreatePerson(string firstName, string lastName, string email, string? phone = null)
     {
         var person = new Person
         {
-            Id = id,
+            Id = Guid.NewGuid(), // Otomatik GUID ataması
             FirstName = firstName,
             LastName = lastName,
             Email = email,
@@ -36,7 +36,7 @@ public class PersonService
         return person;
     }
 
-    public void AddLoyaltyPoints(int personId, int points)
+    public void AddLoyaltyPoints(Guid personId, int points)
     {
         var person = _persons.FirstOrDefault(p => p.Id == personId);
         if (person != null)
@@ -45,10 +45,8 @@ public class PersonService
         }
     }
 
-    public Person? FindPersonById(int id)
+    public Person? FindPersonById(Guid id)
     {
         return _persons.FirstOrDefault(p => p.Id == id);
     }
-
-
 }

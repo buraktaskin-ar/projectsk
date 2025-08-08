@@ -17,9 +17,7 @@ namespace ChatWithAPIDemo.Services
 
         public List<Room> GetRoomsByHotelId(int hotelId)
         {
-            // Burada hotel ile room arasındaki ilişki yokmuş gibi görünüyor
-            // Eğer Room modeline HotelId eklenmişse kullanabilirsiniz
-            return _rooms.Where(r => r.IsAvailable).ToList();
+            return _rooms.Where(r => r.Hotel?.Id == hotelId).ToList();
         }
 
         public Room? GetRoomById(int id)
@@ -29,31 +27,31 @@ namespace ChatWithAPIDemo.Services
 
         public List<Room> SearchRoomsByCapacity(int minCapacity)
         {
-            return _rooms.Where(r => r.Capacity >= minCapacity && r.IsAvailable).ToList();
+            return _rooms.Where(r => r.Capacity >= minCapacity).ToList();
         }
 
         public List<Room> SearchRoomsBySeaView(bool hasSeaView)
         {
-            return _rooms.Where(r => r.IsSeaView == hasSeaView && r.IsAvailable).ToList();
+            return _rooms.Where(r => r.IsSeaView == hasSeaView).ToList();
         }
 
-        public List<Room> SearchRoomsBySmokingAllowed(bool smokingAllowed)
+        public List<Room> SearchRoomsByType(RoomType roomType)
         {
-            return _rooms.Where(r => r.IsSmokingAllowed == smokingAllowed && r.IsAvailable).ToList();
+            return _rooms.Where(r => r.RoomType == roomType).ToList();
         }
 
         public List<Room> SearchRoomsByPriceRange(decimal minPrice, decimal maxPrice)
         {
-            return _rooms.Where(r => r.Price >= minPrice && r.Price <= maxPrice && r.IsAvailable).ToList();
+            return _rooms.Where(r => r.Price >= minPrice && r.Price <= maxPrice).ToList();
         }
 
         public bool IsRoomAvailable(int roomId, DateTime checkIn, DateTime checkOut)
         {
             var room = GetRoomById(roomId);
-            if (room == null || !room.IsAvailable)
+            if (room == null)
                 return false;
 
-            // Belirtilen tarih aralığında oda müsaitliğini kontrol et
+            // Check if there are any conflicting reservations in the room's availability list
             var conflictingAvailabilities = _roomAvailabilities.Where(ra =>
                 ra.Room.Id == roomId &&
                 ra.AvailabilitySlot.Status != AvailabilityStatus.Available &&
@@ -86,6 +84,9 @@ namespace ChatWithAPIDemo.Services
             };
 
             _roomAvailabilities.Add(availability);
+
+            // Also add to the room's availability list
+            room.RoomAvailabilities.Add(availability);
         }
 
         public void FreeRoomAvailability(int roomId, DateTime checkIn, DateTime checkOut)
@@ -100,6 +101,13 @@ namespace ChatWithAPIDemo.Services
             foreach (var availability in availabilitiesToRemove)
             {
                 _roomAvailabilities.Remove(availability);
+
+                // Also remove from room's list
+                var room = GetRoomById(roomId);
+                if (room != null)
+                {
+                    room.RoomAvailabilities.Remove(availability);
+                }
             }
         }
 
@@ -108,7 +116,7 @@ namespace ChatWithAPIDemo.Services
             return _roomAvailabilities.Where(ra => ra.Room.Id == roomId).ToList();
         }
 
-        public Room AddRoom(string roomNumber, int floor, int capacity, bool isSeaView, bool isSmokingAllowed, decimal price)
+        public Room AddRoom(string roomNumber, int floor, int capacity, bool isSeaView, RoomType roomType, decimal price)
         {
             var room = new Room
             {
@@ -117,23 +125,12 @@ namespace ChatWithAPIDemo.Services
                 Floor = floor,
                 Capacity = capacity,
                 IsSeaView = isSeaView,
-                IsSmokingAllowed = isSmokingAllowed,
-                IsAvailable = true,
+                RoomType = roomType,
                 Price = price
             };
 
             _rooms.Add(room);
             return room;
         }
-
-        public bool UpdateRoomAvailability(int roomId, bool isAvailable)
-        {
-            var room = GetRoomById(roomId);
-            if (room == null) return false;
-
-            room.IsAvailable = isAvailable;
-            return true;
-        }
     }
-
 }

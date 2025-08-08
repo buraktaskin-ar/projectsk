@@ -1,234 +1,239 @@
-using ChatWithAPIDemo.ValueObjects;
+Ôªøusing Azure;
+using Azure.Search.Documents;
+using Azure.Search.Documents.Indexes;
+using ChatWithAPIDemo.Configuration;
 using ChatWithAPIDemo.Models;
 using ChatWithAPIDemo.Plugins;
 using ChatWithAPIDemo.Services;
-using Microsoft.AspNetCore.Builder;
-
+using ChatWithAPIDemo.Services.Search;
+using ChatWithAPIDemo.ValueObjects;
 using Microsoft.SemanticKernel;
 using Microsoft.SemanticKernel.ChatCompletion;
-using Microsoft.SemanticKernel.Connectors.OpenAI;
+using Microsoft.SemanticKernel.Embeddings;
 
-WebApplicationBuilder webAppBuilder = WebApplication.CreateBuilder(args);
+var builder = WebApplication.CreateBuilder(args);
 
+// Add services to the container.
+builder.Services.AddControllers();
+builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddSwaggerGen();
 
-string azureApiKey = Environment.GetEnvironmentVariable("AZURE_OPENAI_API_KEY")
-    ?? throw new InvalidOperationException("AZURE_OPENAI_API_KEY environment variable is not set");
+// Load Azure Search configuration
+var azureSearchConfig = AzureSearchConfiguration.LoadFromConfiguration(builder.Configuration);
+builder.Services.AddSingleton(azureSearchConfig);
 
-
-IKernelBuilder azureBuilder = Kernel.CreateBuilder()
-    .AddAzureOpenAIChatCompletion(
-        deploymentName: "gpt-4o-mini",
-        endpoint: "https://ai-newchapter2-resource.cognitiveservices.azure.com/",
-        apiKey: azureApiKey
-    );
-
-
-// Dummy Data
-
+// In-memory data stores
+var persons = new List<Person>();
 var hotels = new List<Hotel>
 {
-    new Hotel { Id = 1, Name = "Aegean Breeze",  StarRating = 4, Address = new Address { City = "Izmir",    Street = "Cumhuriyet Blv. 123" } },
-    new Hotel { Id = 2, Name = "Golden Horn Inn", StarRating = 5, Address = new Address { City = "Istanbul", Street = "Istiklal Cd. 45"     } },
-    new Hotel { Id = 3, Name = "Anatolia Suites", StarRating = 3, Address = new Address { City = "Ankara",   Street = "Ataturk Blv. 210"    } }
-};
-
-var persons = new List<Person>
-{
-    new Person { Id = 1, FirstName = "Ahmet", LastName = "Y˝lmaz", Email = "ahmet@email.com", Phone = "+905551234567", LoyaltyPoints = 100 },
-    new Person { Id =2, FirstName = "Elif", LastName = "Kaya", Email = "elif@email.com", Phone = "+905559876543", LoyaltyPoints = 250 },
-    new Person { Id =3, FirstName = "Mehmet", LastName = "Demir", Email = "mehmet@email.com", Phone = "+905551112233", LoyaltyPoints = 75 },
-    new Person { Id = 4, FirstName = "Zeynep", LastName = "÷zkan", Email = "zeynep@email.com", Phone = "+905554445566", LoyaltyPoints = 320 }
+    new Hotel
+    {
+        Id = 1,
+        Name = "Grand Hotel Istanbul",
+        StarRating = 5,
+        Address = new Address { City = "Istanbul", Street = "Taksim Square", Country = "TR" }
+    },
+    new Hotel
+    {
+        Id = 2,
+        Name = "Ankara Palace Hotel",
+        StarRating = 4,
+        Address = new Address { City = "Ankara", Street = "Kƒ±zƒ±lay", Country = "TR" }
+    },
+    new Hotel
+    {
+        Id = 3,
+        Name = "Izmir Beach Resort",
+        StarRating = 5,
+        Address = new Address { City = "Izmir", Street = "Kordon", Country = "TR" }
+    }
 };
 
 var rooms = new List<Room>
 {
-    // Aegean Breeze (Hotel ID: 1) Rooms
-    new Room { Id = 1, RoomNumber = "101", Floor = 1, Capacity = 2, IsSeaView = true, IsSmokingAllowed = false, IsAvailable = true, Price = 450m, Hotel = hotels[0] },
-    new Room { Id = 2, RoomNumber = "102", Floor = 1, Capacity = 3, IsSeaView = true, IsSmokingAllowed = false, IsAvailable = true, Price = 550m, Hotel = hotels[0]},
-    new Room { Id = 3, RoomNumber = "201", Floor = 2, Capacity = 2, IsSeaView = false, IsSmokingAllowed = true, IsAvailable = true, Price = 350m, Hotel = hotels[0] },
-    
-    // Golden Horn Inn (Hotel ID: 2) Rooms
-    new Room { Id = 4, RoomNumber = "301", Floor = 3, Capacity = 2, IsSeaView = true, IsSmokingAllowed = false, IsAvailable = true, Price = 750m, Hotel = hotels[1] },
-    new Room { Id = 5, RoomNumber = "302", Floor = 3, Capacity = 4, IsSeaView = true, IsSmokingAllowed = false, IsAvailable = true, Price = 950m,Hotel = hotels[1] },
-    new Room { Id = 6, RoomNumber = "401", Floor = 4, Capacity = 2, IsSeaView = false, IsSmokingAllowed = false, IsAvailable = true, Price = 650m ,Hotel = hotels[1]},
-    
-    // Anatolia Suites (Hotel ID: 3) Rooms
-    new Room { Id = 7, RoomNumber = "101", Floor = 1, Capacity = 2, IsSeaView = false, IsSmokingAllowed = true, IsAvailable = true, Price = 250m,Hotel = hotels[2] },
-    new Room { Id = 8, RoomNumber = "102", Floor = 1, Capacity = 3, IsSeaView = false, IsSmokingAllowed = false, IsAvailable = true, Price = 300m ,Hotel = hotels[2]},
-    new Room { Id = 9, RoomNumber = "201", Floor = 2, Capacity = 1, IsSeaView = false, IsSmokingAllowed = false, IsAvailable = false, Price = 200m, Hotel = hotels[2] }
+    new Room { Id = 1, RoomNumber = "101", Floor = 1, Hotel = hotels[0], Capacity = 2, IsSeaView = false, RoomType = RoomType.Standard, Price = 500 },
+    new Room { Id = 2, RoomNumber = "201", Floor = 2, Hotel = hotels[0], Capacity = 3, IsSeaView = true, RoomType = RoomType.Deluxe, Price = 750 },
+    new Room { Id = 3, RoomNumber = "301", Floor = 3, Hotel = hotels[0], Capacity = 4, IsSeaView = true, RoomType = RoomType.Suite, Price = 1000 },
+    new Room { Id = 4, RoomNumber = "102", Floor = 1, Hotel = hotels[1], Capacity = 2, IsSeaView = false, RoomType = RoomType.Standard, Price = 400 },
+    new Room { Id = 5, RoomNumber = "202", Floor = 2, Hotel = hotels[1], Capacity = 3, IsSeaView = false, RoomType = RoomType.Superior, Price = 600 },
+    new Room { Id = 6, RoomNumber = "101", Floor = 1, Hotel = hotels[2], Capacity = 2, IsSeaView = true, RoomType = RoomType.Deluxe, Price = 800 },
+    new Room { Id = 7, RoomNumber = "201", Floor = 2, Hotel = hotels[2], Capacity = 4, IsSeaView = true, RoomType = RoomType.Suite, Price = 1200 }
 };
 
+var roomAvailabilities = new List<RoomAvailability>();
+var reservations = new List<Reservation>();
+var reviews = new List<Review>();
 
-var roomAvailabilities = new List<RoomAvailability>
+var speakers = new List<SpeakerModel>
 {
-    // Room 1 - Blocked for maintenance
-    new RoomAvailability
+    new SpeakerModel { Id = 1, Name = "Living Room Speaker", VolumeLevel = 50, IsMuted = false, BatteryLevel = 100 },
+    new SpeakerModel { Id = 2, Name = "Bedroom Speaker", VolumeLevel = 30, IsMuted = false, BatteryLevel = 75 },
+    new SpeakerModel { Id = 3, Name = "Kitchen Speaker", VolumeLevel = 60, IsMuted = true, BatteryLevel = 50 }
+};
+
+// Register services as singletons
+builder.Services.AddSingleton(persons);
+builder.Services.AddSingleton(hotels);
+builder.Services.AddSingleton(rooms);
+builder.Services.AddSingleton(roomAvailabilities);
+builder.Services.AddSingleton(reservations);
+builder.Services.AddSingleton(reviews);
+builder.Services.AddSingleton(speakers);
+
+// Register business services
+builder.Services.AddSingleton<PersonService>();
+builder.Services.AddSingleton<HotelService>();
+builder.Services.AddSingleton<RoomService>();
+builder.Services.AddSingleton<ReservationService>();
+builder.Services.AddSingleton<ReviewService>();
+
+// Register plugins
+builder.Services.AddSingleton<PPersonPlugin>();
+builder.Services.AddSingleton<HotelPlugin>();
+builder.Services.AddSingleton<RoomPlugin>();
+builder.Services.AddSingleton<ReservationPlugin>();
+builder.Services.AddSingleton<ReviewPlugin>();
+builder.Services.AddSingleton<SpeakerPlugin>();
+
+// Azure Search Services (conditional registration)
+if (azureSearchConfig.IsConfigured())
+{
+    // Register Azure Search clients
+    builder.Services.AddSingleton<SearchIndexClient>(sp =>
+        new SearchIndexClient(
+            new Uri(azureSearchConfig.SearchEndpoint),
+            new AzureKeyCredential(azureSearchConfig.SearchKey)
+        )
+    );
+
+    builder.Services.AddSingleton<SearchClient>(sp =>
+        new SearchClient(
+            new Uri(azureSearchConfig.SearchEndpoint),
+            azureSearchConfig.IndexName,
+            new AzureKeyCredential(azureSearchConfig.SearchKey)
+        )
+    );
+
+    builder.Services.AddSingleton<AzureSearchService>();
+    builder.Services.AddSingleton<AIChatService>();
+
+    Console.WriteLine("‚úÖ Azure AI Search configured successfully");
+}
+else
+{
+    // Register null services when Azure Search is not configured
+    builder.Services.AddSingleton<SearchClient?>(sp => null);
+    builder.Services.AddSingleton<AzureSearchService>(sp => new AzureSearchService(null, null));
+    builder.Services.AddSingleton<AIChatService>(sp => new AIChatService(null, null, null));
+
+    Console.WriteLine("‚ö†Ô∏è Azure AI Search not configured - using standard features only");
+}
+
+// Semantic Kernel setup
+builder.Services.AddSingleton<Kernel>(sp =>
+{
+    var kernelBuilder = Kernel.CreateBuilder();
+
+    // Configure OpenAI or Azure OpenAI based on configuration
+    if (azureSearchConfig.IsConfigured())
     {
-        Id = 1,
-        Room = rooms.First(r => r.Id == 1),
-        AvailabilitySlot = new AvailabilitySlot
-        {
-            Start = DateTime.Now.AddDays(5),
-            End = DateTime.Now.AddDays(7),
-            Status = AvailabilityStatus.OutOfService,
-            Note = "Maintenance work"
-        }
-    },
-    
-    // Room 4 - Reserved
-    new RoomAvailability
+        // Azure OpenAI configuration for both chat and embeddings
+        kernelBuilder.AddAzureOpenAIChatCompletion(
+            deploymentName: azureSearchConfig.ChatDeploymentName,
+            endpoint: azureSearchConfig.AzureOpenAIEndpoint,
+            apiKey: azureSearchConfig.AzureOpenAIKey);
+
+        kernelBuilder.AddAzureOpenAITextEmbeddingGeneration(
+            deploymentName: azureSearchConfig.EmbeddingDeploymentName,
+            endpoint: azureSearchConfig.AzureOpenAIEndpoint,
+            apiKey: azureSearchConfig.AzureOpenAIKey);
+    }
+    else
     {
-        Id = 2,
-        Room = rooms.First(r => r.Id == 4),
-        AvailabilitySlot = new AvailabilitySlot
+        // Standard OpenAI configuration (update with your settings)
+        var openAiKey = builder.Configuration["OpenAI:ApiKey"];
+        if (!string.IsNullOrEmpty(openAiKey))
         {
-            Start = DateTime.Now.AddDays(10),
-            End = DateTime.Now.AddDays(15),
-            Status = AvailabilityStatus.Reserved,
-            Note = "Guest reservation"
-        }
-    },
-    
-    // Room 9 - Completely blocked
-    new RoomAvailability
-    {
-        Id = 3,
-        Room = rooms.First(r => r.Id == 9),
-        AvailabilitySlot = new AvailabilitySlot
-        {
-            Start = DateTime.Now.AddDays(-30),
-            End = DateTime.Now.AddDays(60),
-            Status = AvailabilityStatus.Blocked,
-            Note = "Long-term renovation"
+            kernelBuilder.AddOpenAIChatCompletion("gpt-4", openAiKey);
         }
     }
-};
 
+    // Register plugins
+    kernelBuilder.Plugins.AddFromObject(sp.GetRequiredService<PPersonPlugin>(), "PersonPlugin");
+    kernelBuilder.Plugins.AddFromObject(sp.GetRequiredService<HotelPlugin>(), "HotelPlugin");
+    kernelBuilder.Plugins.AddFromObject(sp.GetRequiredService<RoomPlugin>(), "RoomPlugin");
+    kernelBuilder.Plugins.AddFromObject(sp.GetRequiredService<ReservationPlugin>(), "ReservationPlugin");
+    kernelBuilder.Plugins.AddFromObject(sp.GetRequiredService<ReviewPlugin>(), "ReviewPlugin");
+    kernelBuilder.Plugins.AddFromObject(sp.GetRequiredService<SpeakerPlugin>(), "SpeakerPlugin");
 
+    return kernelBuilder.Build();
+});
 
-
-var reviews = new List<Review>
+builder.Services.AddSingleton<IChatCompletionService>(sp =>
 {
-    new Review
+    var kernel = sp.GetRequiredService<Kernel>();
+    try
     {
-        Id = 1,
-        Rating = 5,
-        Comment = "Harika bir deneyimdi! Deniz manzaras˝ muhte˛em.",
-        Person = persons[0],
-        Hotel = hotels[0]
-    },
-    new Review
-    {
-        Id = 2,
-        Rating = 4,
-        Comment = "Temiz ve konforlu. Personel Áok yard˝mc˝.",
-        Person = persons[1],
-        Hotel = hotels[1]
-    },
-    new Review
-    {
-        Id = 3,
-        Rating = 3,
-        Comment = "Fiyat performans olarak iyi ama biraz g¸r¸lt¸l¸.",
-        Person = persons[2],
-        Hotel = hotels[2]
-    },
-    new Review
-    {
-        Id = 4,
-        Rating = 5,
-        Comment = "M¸kemmel hizmet ve lokasyon!",
-        Person = persons[3],
-        Hotel = hotels[1]
+        return kernel.GetRequiredService<IChatCompletionService>();
     }
-};
+    catch
+    {
+        // Return a null implementation or mock if not configured
+        throw new InvalidOperationException("Chat completion service is not configured. Please configure OpenAI or Azure OpenAI.");
+    }
+});
 
-// Reservations
-var reservations = new List<Reservation>
+// Optional: Register embedding service if configured
+builder.Services.AddSingleton<ITextEmbeddingGenerationService?>(sp =>
 {
-    new Reservation
+    if (azureSearchConfig.IsConfigured())
     {
-        Id = 1,
-        Person = persons[0],
-        Hotel = hotels[0],
-        Room = rooms[0],
-        CheckIn = DateTime.Now.AddDays(-5),
-        CheckOut = DateTime.Now.AddDays(-2),
-        TotalPrice = 1350m // 3 g¸n * 450
-    },
-    new Reservation
-    {
-        Id =2,
-        Person = persons[1],
-        Hotel = hotels[1],
-        Room = rooms[3],
-        CheckIn = DateTime.Now.AddDays(20),
-        CheckOut = DateTime.Now.AddDays(25),
-        TotalPrice = 3750m // 5 g¸n * 750
+        var kernel = sp.GetRequiredService<Kernel>();
+        try
+        {
+            return kernel.GetRequiredService<ITextEmbeddingGenerationService>();
+        }
+        catch
+        {
+            return null;
+        }
     }
-};
+    return null;
+});
 
+var app = builder.Build();
 
+// Initialize Azure Search Index if configured
+if (azureSearchConfig.IsConfigured())
+{
+    var scope = app.Services.CreateScope();
+    var searchIndexClient = scope.ServiceProvider.GetService<SearchIndexClient>();
+    var searchClient = scope.ServiceProvider.GetService<SearchClient>();
+    var embeddingService = scope.ServiceProvider.GetService<ITextEmbeddingGenerationService>();
 
+    if (searchIndexClient != null && searchClient != null && embeddingService != null)
+    {
+        try
+        {
+            // You can optionally initialize the index here
+            Console.WriteLine("Azure Search index ready for use");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Warning: Could not initialize Azure Search index: {ex.Message}");
+        }
+    }
+}
 
-
-
-
-
-
-
-
-
-
-
-
-// ---- App services ----
-
-var hotelService = new HotelService(hotels);
-var personService = new PersonService(persons);
-var roomService = new RoomService(rooms, roomAvailabilities);
-var reviewService = new ReviewService(reviews, personService, hotelService);
-var reservationService = new ReservationService(reservations, roomService, personService, hotelService);
-// Attach plugin that depends on HotelService
-
-azureBuilder.Plugins.AddFromObject(new HotelPlugin(hotelService));
-azureBuilder.Plugins.AddFromObject(new PPersonPlugin(personService));
-azureBuilder.Plugins.AddFromObject(new ReservationPlugin(reservationService));
-
-
-
-
-
-Kernel azureKernel = azureBuilder.Build();
-
-// Dependency Injection
-//webAppBuilder.Services.AddSingleton<Kernel>(azureKernel);
-//webAppBuilder.Services.AddSingleton(hotelService);
-//webAppBuilder.Services.AddSingleton(personService);
-webAppBuilder.Services.AddSingleton<Kernel>(azureKernel);
-webAppBuilder.Services.AddSingleton(hotelService);
-webAppBuilder.Services.AddSingleton(personService);
-webAppBuilder.Services.AddSingleton(roomService);
-webAppBuilder.Services.AddSingleton(reviewService);
-webAppBuilder.Services.AddSingleton(reservationService);
-
-IChatCompletionService chatCompletionService = azureKernel.GetRequiredService<IChatCompletionService>();
-webAppBuilder.Services.AddSingleton<IChatCompletionService>(chatCompletionService);
-    
-   
-
-webAppBuilder.Services.AddControllers();
-webAppBuilder.Services.AddEndpointsApiExplorer();
-webAppBuilder.Services.AddSwaggerGen();
-
-WebApplication app = webAppBuilder.Build();
-
+// Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
     app.UseSwaggerUI();
 }
 
+app.UseHttpsRedirection();
 app.UseAuthorization();
 app.MapControllers();
+
 app.Run();

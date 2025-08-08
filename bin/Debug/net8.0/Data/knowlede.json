@@ -1,0 +1,22 @@
+﻿{
+  "docs": [
+    {
+      "id": "h-1",
+      "content": "Aegean Breeze, İzmir’de deniz kenarında 4 yıldızlı. Spa, açık havuz, fitness, kahvaltı dahildir.",
+      "type": "hotel",
+      "hotelId": 1
+    },
+    {
+      "id": "r-101",
+      "content": "Aegean Breeze 101 no’lu oda: 2 kişilik, deniz manzaralı, sigara içilmez. Günlük 450 TL.",
+      "type": "room",
+      "hotelId": 1,
+      "price": 450
+    },
+    {
+      "id": "faq-1",
+      "content": "Check-in 14:00, check-out 12:00. Erken/Geç işlemler müsaitliğe bağlıdır.",
+      "type": "faq"
+    }
+  ]
+}

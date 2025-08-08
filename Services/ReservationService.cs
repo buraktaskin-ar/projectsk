@@ -1,6 +1,5 @@
 ﻿using ChatWithAPIDemo.Models;
 
-
 namespace ChatWithAPIDemo.Services;
 
 public class ReservationService
@@ -20,7 +19,7 @@ public class ReservationService
 
     public List<Reservation> GetAllReservations() => _reservations;
 
-    public List<Reservation> GetReservationsByPersonId(int personId)
+    public List<Reservation> GetReservationsByPersonId(Guid personId)
     {
         return _reservations.Where(r => r.Person.Id == personId).ToList();
     }
@@ -35,7 +34,36 @@ public class ReservationService
         return _reservations.FirstOrDefault(r => r.Id == id);
     }
 
-    public Reservation? CreateReservation(int personId, int hotelId, int roomId, DateTime checkIn, DateTime checkOut)
+    // Yeni metod: Person bilgileri ile rezervasyon oluşturma
+    public Reservation? CreateReservationWithNewPerson(
+        string firstName,
+        string lastName,
+        string email,
+        string? phone,
+        int hotelId,
+        int roomId,
+        DateTime checkIn,
+        DateTime checkOut)
+    {
+        // Önce kişiyi oluştur veya bul
+        var existingPerson = _personService.FindPersonByEmail(email);
+        Person person;
+
+        if (existingPerson == null)
+        {
+            // Yeni kişi oluştur
+            person = _personService.CreatePerson(firstName, lastName, email, phone);
+        }
+        else
+        {
+            person = existingPerson;
+        }
+
+        // Rezervasyonu oluştur
+        return CreateReservation(person.Id, hotelId, roomId, checkIn, checkOut);
+    }
+
+    public Reservation? CreateReservation(Guid personId, int hotelId, int roomId, DateTime checkIn, DateTime checkOut)
     {
         // Kişi kontrolü
         var person = _personService.FindPersonById(personId);
@@ -49,7 +77,7 @@ public class ReservationService
 
         // Oda kontrolü
         var room = _roomService.GetRoomById(roomId);
-        if (room == null || !room.IsAvailable)
+        if (room == null)//|| !room.IsAvailable
             return null;
 
         // Oda müsaitlik kontrolü
@@ -58,11 +86,12 @@ public class ReservationService
 
         // Fiyat hesaplama
         var totalDays = (checkOut - checkIn).Days;
+        if (totalDays <= 0) totalDays = 1; // En az 1 gün
         var totalPrice = room.Price * totalDays;
 
         var reservation = new Reservation
         {
-            Id = personId,
+            Id = _reservations.Count > 0 ? _reservations.Max(r => r.Id) + 1 : 1,
             Person = person,
             Hotel = hotel,
             Room = room,
@@ -74,7 +103,7 @@ public class ReservationService
         _reservations.Add(reservation);
 
         // Oda müsaitliğini güncelle
-        _roomService.BlockRoomAvailability(roomId, checkIn, checkOut, "Reserved");
+        _roomService.BlockRoomAvailability(roomId, checkIn, checkOut, $"Reserved for {person.FirstName} {person.LastName}");
 
         // Loyalty points ekle
         _personService.AddLoyaltyPoints(personId, (int)(totalPrice / 10)); // Her 10 TL için 1 puan

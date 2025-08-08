@@ -3,6 +3,8 @@ using System.ComponentModel;
 using System.Globalization;
 using System.Text.Json;
 using ChatWithAPIDemo.Services;
+using ChatWithAPIDemo.Models;
+
 namespace ChatWithAPIDemo.Plugins;
 
 public class RoomPlugin
@@ -27,9 +29,13 @@ public class RoomPlugin
     public string SearchBySeaView([Description("Has sea view (true/false)")] bool hasSeaView)
         => JsonSerializer.Serialize(_roomService.SearchRoomsBySeaView(hasSeaView), J);
 
-    [KernelFunction, Description("Search rooms by smoking permission")]
-    public string SearchBySmokingAllowed([Description("Smoking allowed (true/false)")] bool smokingAllowed)
-        => JsonSerializer.Serialize(_roomService.SearchRoomsBySmokingAllowed(smokingAllowed), J);
+    [KernelFunction, Description("Search rooms by room type")]
+    public string SearchByRoomType([Description("Room type (Standard, Deluxe, Superior, Suite, Presidential)")] string roomType)
+    {
+        if (Enum.TryParse<RoomType>(roomType, true, out var type))
+            return JsonSerializer.Serialize(_roomService.SearchRoomsByType(type), J);
+        return JsonSerializer.Serialize(new { error = "Invalid room type. Use: Standard, Deluxe, Superior, Suite, or Presidential" }, J);
+    }
 
     [KernelFunction, Description("Search rooms by price range")]
     public string SearchByPriceRange(
@@ -87,15 +93,14 @@ public class RoomPlugin
         [Description("Floor")] int floor,
         [Description("Capacity")] int capacity,
         [Description("Sea view (true/false)")] bool isSeaView,
-        [Description("Smoking allowed (true/false)")] bool isSmokingAllowed,
+        [Description("Room type (Standard, Deluxe, Superior, Suite, Presidential)")] string roomType,
         [Description("Price")] decimal price)
-        => JsonSerializer.Serialize(_roomService.AddRoom(roomNumber, floor, capacity, isSeaView, isSmokingAllowed, price), J);
+    {
+        if (!Enum.TryParse<RoomType>(roomType, true, out var type))
+            return JsonSerializer.Serialize(new { error = "Invalid room type. Use: Standard, Deluxe, Superior, Suite, or Presidential" }, J);
 
-    [KernelFunction, Description("Set the high-level availability flag for a room")]
-    public string UpdateRoomAvailability(
-        [Description("Room id")] int roomId,
-        [Description("Is available (true/false)")] bool isAvailable)
-        => JsonSerializer.Serialize(new { success = _roomService.UpdateRoomAvailability(roomId, isAvailable) }, J);
+        return JsonSerializer.Serialize(_roomService.AddRoom(roomNumber, floor, capacity, isSeaView, type, price), J);
+    }
 
     private static bool TryParseDate(string s, out DateTime dt) =>
         DateTime.TryParse(s, CultureInfo.InvariantCulture, DateTimeStyles.AssumeLocal, out dt);

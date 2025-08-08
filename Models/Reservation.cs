@@ -8,7 +8,6 @@ namespace ChatWithAPIDemo.Models
         [JsonPropertyName("id")]
         public int Id { get; set; }
 
-
         [JsonPropertyName("person")]
         public Person Person { get; set; }
 

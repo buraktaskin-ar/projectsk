@@ -1,7 +1,7 @@
 ﻿using ChatWithAPIDemo.Models;
+
 namespace ChatWithAPIDemo.Services
 {
-
     public class ReviewService
     {
         private readonly List<Review> _reviews;
@@ -22,7 +22,7 @@ namespace ChatWithAPIDemo.Services
             return _reviews.Where(r => r.Hotel.Id == hotelId).ToList();
         }
 
-        public List<Review> GetReviewsByPersonId(int personId)
+        public List<Review> GetReviewsByPersonId(Guid personId)
         {
             return _reviews.Where(r => r.Person.Id == personId).ToList();
         }
@@ -32,7 +32,7 @@ namespace ChatWithAPIDemo.Services
             return _reviews.FirstOrDefault(r => r.Id == id);
         }
 
-        public Review? CreateReview(int personId, int hotelId, int rating, string comment)
+        public Review? CreateReview(Guid personId, int hotelId, int rating, string comment)
         {
             if (rating < 1 || rating > 5)
                 return null;
